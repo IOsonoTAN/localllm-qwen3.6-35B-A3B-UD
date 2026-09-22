@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/components/ToastContext';
 
 interface FormData {
   name: string;
@@ -14,8 +15,9 @@ export default function Home() {
     email: '',
     message: '',
   });
+  const { showToast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null);
+  const [submitStatus, setSubmitStatus] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -40,14 +42,18 @@ export default function Home() {
       });
 
       if (response.ok) {
+        showToast('success', 'Your message has been sent successfully!');
         setSubmitStatus('success');
         setFormData({ name: '', email: '', message: '' });
+        setTimeout(() => setSubmitStatus(null), 5000);
       } else {
         const error = await response.json();
+        showToast('error', `Error: ${error.error || 'Failed to send message'}`);
         setSubmitStatus('error');
         console.error('Error:', error);
       }
     } catch (error) {
+      showToast('error', 'Failed to submit form. Please try again.');
       setSubmitStatus('error');
       console.error('Failed to submit form:', error);
     } finally {
