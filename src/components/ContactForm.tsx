@@ -1,12 +1,110 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
 
 interface ContactFormData {
   name: string;
   email: string;
   message: string;
 }
+
+// Toast context
+interface ToastData {
+  id: number;
+  type: 'success' | 'error';
+  message: string;
+}
+
+interface ToastContextType {
+  showToast: (type: 'success' | 'error', message: string) => void;
+}
+
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+export const useToast = () => {
+  const context = useContext(ToastContext);
+  if (!context) throw new Error('useToast must be used within a ToastProvider');
+  return context;
+};
+
+// Toast component
+function Toast({ toast, onRemove }: { toast: ToastData; onRemove: (id: number) => void }) {
+  useEffect(() => {
+    const timer = setTimeout(() => onRemove(toast.id), 4000);
+    return () => clearTimeout(timer);
+  }, [toast.id, onRemove]);
+
+  const isSuccess = toast.type === 'success';
+
+  return (
+    <div
+      className={`flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border transition-all animate-in fade-in slide-in-from-top ${isSuccess ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}
+    >
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isSuccess ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+        {isSuccess ? (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        )}
+      </div>
+      <p className={`text-sm font-medium flex-1 ${isSuccess ? 'text-green-700' : 'text-red-700'}`}>
+        {toast.message}
+      </p>
+    </div>
+  );
+}
+
+// Toast container that displays all toasts
+function ToastContainer({ toasts, onRemove }: { toasts: ToastData[]; onRemove: (id: number) => void }) {
+  if (toasts.length === 0) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm w-full">
+      {toasts.map((toast) => (
+        <Toast key={toast.id} toast={toast} onRemove={onRemove} />
+      ))}
+    </div>
+  );
+}
+
+// Toast provider component
+function ToastProvider({ children }: { children: React.ReactNode }) {
+  const [toasts, setToasts] = useState<ToastData[]>([]);
+
+  const showToast = (type: 'success' | 'error', message: string) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, type, message }]);
+  };
+
+  const removeToast = (id: number) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
+  return (
+    <ToastContext.Provider value={{ showToast }}>
+      {children}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+    </ToastContext.Provider>
+  );
+}
+
+// Higher-order component to wrap pages/sections with ToastProvider
+export const withToast = (Component: React.ComponentType) => {
+  return function WrappedWithToast(props: any) {
+    return (
+      <ToastProvider>
+        <Component {...props} />
+      </ToastProvider>
+    );
+  };
+};
+
+// Export default wrapper for ContactForm
+export const ToastedContactForm = withToast(ContactForm);
 
 export default function ContactForm() {
   const [formData, setFormData] = useState<ContactFormData>({
@@ -15,14 +113,11 @@ export default function ContactForm() {
     message: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [errorMessage, setErrorMessage] = useState('');
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setSubmitStatus('idle');
-    setErrorMessage('');
 
     try {
       const response = await fetch('/api/contact', {
@@ -34,16 +129,14 @@ export default function ContactForm() {
       });
 
       if (response.ok) {
-        setSubmitStatus('success');
+        showToast('success', 'Thank you! Your message has been sent successfully.');
         setFormData({ name: '', email: '', message: '' });
       } else {
         const data = await response.json();
-        setSubmitStatus('error');
-        setErrorMessage(data.error || 'Failed to submit form');
+        showToast('error', data.error || 'Failed to submit form');
       }
     } catch (error) {
-      setSubmitStatus('error');
-      setErrorMessage('Network error. Please try again.');
+      showToast('error', 'Network error. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -60,18 +153,6 @@ export default function ContactForm() {
         <div className="bg-white rounded-lg shadow-xl p-8">
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Contact Us</h1>
           <p className="text-center text-gray-600 mb-8">We'd love to hear from you</p>
-
-          {submitStatus === 'success' && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-green-700 text-center">Thank you! Your message has been sent successfully.</p>
-            </div>
-          )}
-
-          {submitStatus === 'error' && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-700 text-center">{errorMessage}</p>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
