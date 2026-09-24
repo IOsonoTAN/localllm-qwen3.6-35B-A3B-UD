@@ -84,14 +84,3 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     </ToastContext.Provider>
   );
 }
-
-// Higher-order component to wrap pages/sections with ToastProvider
-export const withToast = (Component: React.ComponentType) => {
-  return function WrappedWithToast(props: any) {
-    return (
-      <ToastProvider>
-        <Component {...props} />
-      </ToastProvider>
-    );
-  };
-};

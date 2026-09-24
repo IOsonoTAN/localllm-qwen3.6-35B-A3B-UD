@@ -1,11 +1,11 @@
 import "./globals.css";
-import { ToastProvider } from "@/components/ToastContext"; // <-- Added ToastProvider
+import { ToastProvider } from "@/components/ToastContext";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <ToastProvider> {/* <-- Wrapped with ToastProvider */}
+        <ToastProvider>
           {children}
         </ToastProvider>
       </body>

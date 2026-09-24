@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
+import type { ContactPayload } from '@/types/contact';
 
 const CONTACTS_FILE = path.join(process.cwd(), 'src', 'data', 'contacts.json');
-interface ContactData {
-  name: string;
-  email: string;
-  message: string;
-}
 
 export async function POST(request: Request) {
   try {
-    const body: ContactData = await request.json();
+    const body: ContactPayload = await request.json();
     
     // Validate input
     if (!body.name || !body.email || !body.message) {
@@ -22,7 +18,7 @@ export async function POST(request: Request) {
     }
 
     // Read existing contacts
-    let contacts: ContactData[] = [];
+    let contacts: ContactPayload[] = [];
     try {
       const data = await fs.readFile(CONTACTS_FILE, 'utf8');
       if (data) {
