@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     
     contacts.push(newContact);
 
-    // Write back to file
     await fs.writeFile(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     return NextResponse.json(
       { message: 'Contact message saved successfully' },
